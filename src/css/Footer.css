@@ -1,0 +1,151 @@
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.footer {
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    margin-top: 60px;
+}
+
+.footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
+}
+
+/* ── BRAND COL ── */
+.footer-brand {
+    flex: 1.5;
+    padding: 48px 0 40px;
+}
+
+.footer-logo {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+}
+
+.footer-logo span { color: var(--ice); }
+
+.footer-tagline {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 300;
+    line-height: 1.7;
+    max-width: 260px;
+    margin-bottom: 20px;
+}
+
+.footer-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.footer-contact-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-faint);
+}
+
+.footer-contact-item svg { color: var(--ice); flex-shrink: 0; }
+
+/* ── LINK COLS ── */
+.footer-col {
+    flex: 1;
+    padding: 48px 0 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.footer-col h4 {
+    font-family: var(--font-head);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.footer-col a {
+    font-size: 13px;
+    color: var(--text-faint);
+    text-decoration: none;
+    transition: color var(--transition);
+    font-weight: 300;
+}
+
+.footer-col a:hover { color: var(--text-primary); }
+
+/* ── BOTTOM BAR ── */
+.footer-bottom {
+    border-top: 1px solid var(--border);
+}
+
+.footer-bottom .footer-inner {
+    padding-top: 18px;
+    padding-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.footer-copy {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-weight: 300;
+}
+
+.footer-mpesa {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-faint);
+}
+
+.mpesa-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #ffffff;
+    background: #006837;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: var(--font-head);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+    .footer-inner {
+        flex-wrap: wrap;
+        gap: 0;
+    }
+
+    .footer-brand {
+        flex: 1 1 100%;
+        padding-bottom: 24px;
+    }
+
+    .footer-col {
+        flex: 1 1 40%;
+        padding: 24px 0;
+    }
+
+    .footer-bottom .footer-inner {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+}
