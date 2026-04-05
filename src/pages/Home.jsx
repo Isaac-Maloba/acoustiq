@@ -235,7 +235,7 @@ const Home = () => {
                                         </button>
                                         <button
                                             className="btn btn-ghost"
-                                            onClick={() => navigate('/signup')}
+                                            onClick={() => navigate(user ? '/add-product' : '/signup')}
                                         >
                                             {user ? 'Add a Product' : 'Join Acoustiq'}
                                         </button>
