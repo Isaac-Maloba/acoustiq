@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiUpload, FiSave } from 'react-icons/fi';
+import { FiUpload, FiSave, FiTrash2 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
-import { apiGetProduct, apiEditProduct } from '../utils/api';
+import { apiGetProduct, apiEditProduct, apiDeleteProduct } from '../utils/api';
 import Loader from '../components/Loader';
 import '../css/AddProduct.css';
 
@@ -79,13 +79,14 @@ const EditProduct = () => {
     const [error,    setError]    = useState('');
     const [success,  setSuccess]  = useState('');
 
+    // ── DELETE STATE ──
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting,          setDeleting]          = useState(false);
+    const [deleteErr,         setDeleteErr]         = useState('');
+
     // ── FETCH EXISTING PRODUCT DATA ──
     useEffect(() => {
-        // Guard: must be signed in
-        if (!user) {
-            navigate('/signin');
-            return;
-        }
+        if (!user) { navigate('/signin'); return; }
 
         const fetchProduct = async () => {
             try {
@@ -93,11 +94,7 @@ const EditProduct = () => {
                 const response = await apiGetProduct(product_id);
                 const p        = response.data;
 
-                // Guard: only the owner can edit
-                if (p.added_by !== user.user_id) {
-                    navigate('/');
-                    return;
-                }
+                if (p.added_by !== user.user_id) { navigate('/'); return; }
 
                 setProductName(p.product_name        || '');
                 setDescription(p.product_description || '');
@@ -131,19 +128,15 @@ const EditProduct = () => {
         setMainPreview(URL.createObjectURL(file));
     };
 
-    // ── SUBMIT ──
+    // ── SUBMIT EDIT ──
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setSuccess('');
 
-        if (!category) {
-            setError('Please select a category.');
-            return;
-        }
+        if (!category) { setError('Please select a category.'); return; }
 
         setLoading(true);
-
         try {
             const formData = new FormData();
             formData.append('user_id',             user.user_id);
@@ -159,21 +152,28 @@ const EditProduct = () => {
             formData.append('format',              format);
             formData.append('featured',            featured ? 1 : 0);
 
-            if (newMainPhoto) {
-                formData.append('product_photo', newMainPhoto);
-            }
+            if (newMainPhoto) formData.append('product_photo', newMainPhoto);
 
             await apiEditProduct(product_id, formData);
             setSuccess('Product updated successfully!');
             setTimeout(() => navigate(`/product/${product_id}`), 2000);
-
         } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                'Failed to update product. Please try again.'
-            );
+            setError(err.response?.data?.message || 'Failed to update product. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // ── DELETE ──
+    const handleDelete = async () => {
+        setDeleting(true);
+        setDeleteErr('');
+        try {
+            await apiDeleteProduct(product_id, user.user_id);
+            navigate('/');
+        } catch (err) {
+            setDeleteErr(err.response?.data?.message || 'Failed to delete product. Please try again.');
+            setDeleting(false);
         }
     };
 
@@ -254,6 +254,54 @@ const EditProduct = () => {
                                         <span className="toggle-knob" />
                                     </label>
                                 </div>
+                            </div>
+
+                            {/* ── DANGER ZONE ── */}
+                            <div className="form-section edit-danger-zone">
+                                <h3 className="form-section-title" style={{ color: 'var(--error)' }}>
+                                    Danger Zone
+                                </h3>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+                                    Permanently removes this product, its images, and all associated reviews.
+                                </p>
+
+                                {deleteErr && <div className="alert alert-error" style={{ marginBottom: '12px' }}>{deleteErr}</div>}
+
+                                {!showDeleteConfirm ? (
+                                    <button
+                                        type="button"
+                                        className="btn btn-danger w-full"
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                    >
+                                        <FiTrash2 size={14} /> Delete Product
+                                    </button>
+                                ) : (
+                                    <div className="delete-confirm-block">
+                                        <p className="delete-confirm-label">
+                                            Are you sure? This cannot be undone.
+                                        </p>
+                                        <div className="flex gap-1">
+                                            <button
+                                                type="button"
+                                                className="btn btn-danger"
+                                                onClick={handleDelete}
+                                                disabled={deleting}
+                                                style={{ flex: 1 }}
+                                            >
+                                                {deleting ? <Loader small /> : 'Yes, Delete'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-ghost"
+                                                onClick={() => setShowDeleteConfirm(false)}
+                                                disabled={deleting}
+                                                style={{ flex: 1 }}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                         </div>

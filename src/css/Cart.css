@@ -205,3 +205,67 @@
     .cart-page { padding: 24px 16px 40px; }
     .cart-item-img { width: 70px; height: 70px; }
 }
+
+/* ── QTY CONTROLS (append these to your existing Cart.css) ── */
+
+.cart-qty-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.cart-qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.qty-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--bg-surface2);
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition), color var(--transition);
+    flex-shrink: 0;
+}
+
+.qty-btn:hover:not(:disabled) {
+    background: var(--ice-dim);
+    color: var(--ice);
+}
+
+.qty-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.qty-value {
+    min-width: 36px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    border-left: 1px solid var(--border-2);
+    border-right: 1px solid var(--border-2);
+    background: var(--bg-card);
+}
+
+.qty-subtotal {
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+}

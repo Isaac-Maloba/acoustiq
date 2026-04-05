@@ -55,10 +55,10 @@ const Footer = () => {
                 {/* ── INFO COL ── */}
                 <div className="footer-col">
                     <h4>Info</h4>
-                    <Link to="/">About Us</Link>
-                    <Link to="/">Contact</Link>
-                    <Link to="/">Returns Policy</Link>
-                    <Link to="/">Shipping Info</Link>
+                    <Link to="/about">About Us</Link>
+                    <Link to="/contact">Contact</Link>
+                    <Link to="/returns">Returns Policy</Link>
+                    <Link to="/shipping">Shipping Info</Link>
                 </div>
 
             </div>

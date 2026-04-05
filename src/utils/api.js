@@ -42,6 +42,9 @@ export const apiDeleteAccount = (userId) =>
 export const apiGetProducts = (params = {}) =>
     axios.get(`${BASE_URL}/api/products`, { params });
 
+export const apiDeleteProduct = (productId, userId) =>
+    axios.delete(`${BASE_URL}/api/delete_product/${productId}`, { params: { user_id: userId } });
+
 export const apiGetProduct = (productId) =>
     axios.get(`${BASE_URL}/api/product/${productId}`);
 
@@ -60,6 +63,9 @@ export const apiGetCart = (userId) =>
 
 export const apiAddToCart = (formData) =>
     axios.post(`${BASE_URL}/api/cart/add`, formData);
+
+export const apiDecrementCartItem = (cartId) =>
+    axios.put(`${BASE_URL}/api/cart/decrement/${cartId}`);
 
 export const apiRemoveFromCart = (cartId) =>
     axios.delete(`${BASE_URL}/api/cart/remove/${cartId}`);

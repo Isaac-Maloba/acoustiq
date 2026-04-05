@@ -266,3 +266,23 @@
     .form-row-2      { grid-template-columns: 1fr; }
     .form-row-3      { grid-template-columns: 1fr; }
 }
+
+.edit-danger-zone {
+    border: 1px solid rgba(224, 92, 92, 0.2);
+    border-radius: var(--radius);
+    background: var(--error-dim);
+    padding: 16px;
+}
+ 
+.delete-confirm-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+ 
+.delete-confirm-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--error);
+    margin: 0;
+}

@@ -3,20 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { FiTrash2, FiShoppingCart, FiMinus, FiPlus } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { apiMpesaPayment, apiRemoveFromCart } from '../utils/api';
+import { apiMpesaPayment, apiAddToCart, apiDecrementCartItem } from '../utils/api';
 import Loader from '../components/Loader';
 import '../css/Cart.css';
 
 const Cart = () => {
-    const { user }                                    = useAuth();
+    const { user }                                 = useAuth();
     const { cartItems, cartTotal, cartLoading,
-            removeFromCart, clearCart, fetchCart }    = useCart();
-    const navigate                                    = useNavigate();
+            removeFromCart, clearCart, fetchCart } = useCart();
+    const navigate                                 = useNavigate();
 
-    const [phone,       setPhone]       = useState('');
-    const [paying,      setPaying]      = useState(false);
-    const [payMsg,      setPayMsg]      = useState('');
-    const [payErr,      setPayErr]      = useState('');
+    const [phone,   setPhone]   = useState('');
+    const [paying,  setPaying]  = useState(false);
+    const [payMsg,  setPayMsg]  = useState('');
+    const [payErr,  setPayErr]  = useState('');
+
+    // Track which cart_id is busy so buttons disable individually
+    const [busyId,  setBusyId]  = useState(null);
 
     if (!user) {
         return (
@@ -29,10 +32,48 @@ const Cart = () => {
         );
     }
 
-    const handleRemove = async (cartId) => {
-        await removeFromCart(cartId);
+    // ── INCREASE QTY ──
+    const handleIncrease = async (productId, cartId) => {
+        setBusyId(cartId);
+        try {
+            const formData = new FormData();
+            formData.append('user_id',    user.user_id);
+            formData.append('product_id', productId);
+            await apiAddToCart(formData);
+            await fetchCart();
+        } catch (err) {
+            console.error('Failed to increase quantity:', err);
+        } finally {
+            setBusyId(null);
+        }
     };
 
+    // ── DECREASE QTY ──
+    const handleDecrease = async (cartId, currentQty) => {
+        setBusyId(cartId);
+        try {
+            if (currentQty <= 1) {
+                // Remove the row entirely
+                await removeFromCart(cartId);
+            } else {
+                await apiDecrementCartItem(cartId);
+                await fetchCart();
+            }
+        } catch (err) {
+            console.error('Failed to decrease quantity:', err);
+        } finally {
+            setBusyId(null);
+        }
+    };
+
+    // ── REMOVE ──
+    const handleRemove = async (cartId) => {
+        setBusyId(cartId);
+        await removeFromCart(cartId);
+        setBusyId(null);
+    };
+
+    // ── CHECKOUT ──
     const handleCheckout = async (e) => {
         e.preventDefault();
         if (cartItems.length === 0) return;
@@ -83,6 +124,8 @@ const Cart = () => {
                         <div className="cart-items">
                             {cartItems.map(item => (
                                 <div key={item.cart_id} className="cart-item">
+
+                                    {/* Image */}
                                     <div
                                         className="cart-item-img"
                                         onClick={() => navigate(`/product/${item.product_id}`)}
@@ -93,6 +136,8 @@ const Cart = () => {
                                             onError={(e) => { e.target.src = '/placeholder.png'; }}
                                         />
                                     </div>
+
+                                    {/* Info */}
                                     <div className="cart-item-info">
                                         <h3
                                             className="cart-item-name"
@@ -103,20 +148,55 @@ const Cart = () => {
                                         <div className="cart-item-price">
                                             KES {Number(item.product_cost).toLocaleString()}
                                         </div>
-                                        <div className="cart-item-qty">
-                                            <span className="qty-label">Qty: {item.quantity}</span>
+
+                                        {/* ── QTY CONTROLS ── */}
+                                        <div className="cart-qty-row">
+                                            <div className="cart-qty-controls">
+                                                <button
+                                                    className="qty-btn"
+                                                    onClick={() => handleDecrease(item.cart_id, item.quantity)}
+                                                    disabled={busyId === item.cart_id}
+                                                    title={item.quantity === 1 ? 'Remove item' : 'Decrease quantity'}
+                                                >
+                                                    {item.quantity === 1
+                                                        ? <FiTrash2 size={13} />
+                                                        : <FiMinus size={13} />
+                                                    }
+                                                </button>
+
+                                                <span className="qty-value">
+                                                    {busyId === item.cart_id
+                                                        ? <Loader small />
+                                                        : item.quantity
+                                                    }
+                                                </span>
+
+                                                <button
+                                                    className="qty-btn"
+                                                    onClick={() => handleIncrease(item.product_id, item.cart_id)}
+                                                    disabled={busyId === item.cart_id}
+                                                    title="Increase quantity"
+                                                >
+                                                    <FiPlus size={13} />
+                                                </button>
+                                            </div>
+
                                             <span className="qty-subtotal">
-                                                Subtotal: KES {Number(item.product_cost * item.quantity).toLocaleString()}
+                                                KES {Number(item.product_cost * item.quantity).toLocaleString()}
                                             </span>
                                         </div>
                                     </div>
+
+                                    {/* Remove */}
                                     <button
                                         className="cart-item-remove"
                                         onClick={() => handleRemove(item.cart_id)}
+                                        disabled={busyId === item.cart_id}
                                         title="Remove item"
                                     >
                                         <FiTrash2 size={16} />
                                     </button>
+
                                 </div>
                             ))}
                         </div>
