@@ -24,7 +24,7 @@ const Footer = () => {
                         </div>
                         <div className="footer-contact-item">
                             <FiPhone size={13} />
-                            <span>+254 700 000 000</span>
+                            <span>+254 119 043 365</span>
                         </div>
                         <div className="footer-contact-item">
                             <FiMail size={13} />
