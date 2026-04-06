@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUpload, FiX, FiPlus } from 'react-icons/fi';
+import { FiUpload, FiSave, FiX, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { apiAddProduct } from '../utils/api';
 import Loader from '../components/Loader';
@@ -49,6 +49,66 @@ const CONDITIONS = ['New', 'Used - Excellent', 'Used - Good', 'Used - Fair'];
 const FORMATS    = ['N/A', 'VST2', 'VST3', 'AU', 'AAX', 'Standalone'];
 
 // ============================================================
+//  IMAGE COMPRESSOR
+//  Resizes and compresses a File to JPEG, max 800px wide,
+//  targeting under 300KB so AlwaysData never closes the connection.
+// ============================================================
+const compressImage = (file) =>
+    new Promise((resolve, reject) => {
+        const MAX_WIDTH  = 800;
+        const MAX_HEIGHT = 800;
+        const QUALITY    = 0.75; // 75% JPEG quality — good visually, small file
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let { width, height } = img;
+
+                // Scale down proportionally
+                if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                    const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+                    width  = Math.round(width  * ratio);
+                    height = Math.round(height * ratio);
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width  = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) { reject(new Error('Compression failed')); return; }
+                        // Turn blob back into a File with a safe .jpg name
+                        const safeName = file.name.replace(/\.[^.]+$/, '') + '_compressed.jpg';
+                        resolve(new File([blob], safeName, { type: 'image/jpeg' }));
+                    },
+                    'image/jpeg',
+                    QUALITY
+                );
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+    });
+
+// ============================================================
+//  VALIDATION
+// ============================================================
+const validate = ({ productName, description, cost, category, mainPhoto }) => {
+    const errors = {};
+    if (!productName.trim())       errors.productName  = 'Product name is required.';
+    if (!description.trim())       errors.description  = 'Description is required.';
+    if (!cost || Number(cost) < 1) errors.cost         = 'Enter a valid price greater than 0.';
+    if (!category)                 errors.category     = 'Please select a category.';
+    if (!mainPhoto)                errors.mainPhoto    = 'A main product photo is required.';
+    return errors;
+};
+
+// ============================================================
 //  ADD PRODUCT
 // ============================================================
 const AddProduct = () => {
@@ -56,78 +116,86 @@ const AddProduct = () => {
     const navigate   = useNavigate();
 
     // ── FORM STATE ──
-    const [productName,   setProductName]   = useState('');
-    const [description,   setDescription]   = useState('');
-    const [cost,          setCost]          = useState('');
-    const [category,      setCategory]      = useState('');
-    const [instrumentType,setInstrumentType]= useState('');
-    const [brand,         setBrand]         = useState('');
-    const [genre,         setGenre]         = useState('');
-    const [level,         setLevel]         = useState('');
-    const [condition,     setCondition]     = useState('');
-    const [format,        setFormat]        = useState('N/A');
-    const [featured,      setFeatured]      = useState(false);
+    const [productName,    setProductName]    = useState('');
+    const [description,    setDescription]    = useState('');
+    const [cost,           setCost]           = useState('');
+    const [category,       setCategory]       = useState('');
+    const [instrumentType, setInstrumentType] = useState('');
+    const [brand,          setBrand]          = useState('');
+    const [genre,          setGenre]          = useState('');
+    const [level,          setLevel]          = useState('');
+    const [condition,      setCondition]      = useState('');
+    const [format,         setFormat]         = useState('N/A');
+    const [featured,       setFeatured]       = useState(false);
 
-    // ── IMAGE STATE ──
-    const [mainPhoto,     setMainPhoto]     = useState(null);
-    const [mainPreview,   setMainPreview]   = useState('');
-    const [extraPhotos,   setExtraPhotos]   = useState([]);
-    const [extraPreviews, setExtraPreviews] = useState([]);
+    // ── PHOTO STATE ──
+    const [mainPhoto,    setMainPhoto]    = useState(null);
+    const [mainPreview,  setMainPreview]  = useState('');
+    const [compressing,  setCompressing]  = useState(false);
 
     // ── UI STATE ──
     const [loading,  setLoading]  = useState(false);
-    const [error,    setError]    = useState('');
+    const [errors,   setErrors]   = useState({});
+    const [apiError, setApiError] = useState('');
     const [success,  setSuccess]  = useState('');
 
-    // ── GUARD: must be signed in ──
-    if (!user) {
-        return (
-            <div className="page-wrapper">
-                <div className="alert alert-error">
-                    You must be signed in to add a product.{' '}
-                    <button className="link-btn" onClick={() => navigate('/signin')}>
-                        Sign In
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    if (!user) { navigate('/signin'); return null; }
 
-    // ── MAIN PHOTO HANDLER ──
-    const handleMainPhoto = (e) => {
+    // ── PHOTO HANDLER — compress on select ──
+    const handleMainPhoto = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        setMainPhoto(file);
+
+        // Clear previous photo error
+        setErrors(prev => ({ ...prev, mainPhoto: '' }));
+
+        // Show original preview immediately for responsiveness
         setMainPreview(URL.createObjectURL(file));
+        setCompressing(true);
+
+        try {
+            const compressed = await compressImage(file);
+            setMainPhoto(compressed);
+            // Update preview to compressed version
+            setMainPreview(URL.createObjectURL(compressed));
+            const kb = Math.round(compressed.size / 1024);
+            console.log(`Image compressed to ${kb}KB`);
+        } catch (err) {
+            console.error('Compression error:', err);
+            // Fall back to original if compression fails
+            setMainPhoto(file);
+        } finally {
+            setCompressing(false);
+        }
     };
 
-    // ── EXTRA PHOTOS HANDLER ──
-    const handleExtraPhotos = (e) => {
-        const files = Array.from(e.target.files);
-        const newFiles    = [...extraPhotos,   ...files];
-        const newPreviews = [...extraPreviews, ...files.map(f => URL.createObjectURL(f))];
-        setExtraPhotos(newFiles);
-        setExtraPreviews(newPreviews);
+    // ── CLEAR PHOTO ──
+    const handleClearPhoto = (e) => {
+        e.stopPropagation();
+        setMainPhoto(null);
+        setMainPreview('');
+        // Reset file input so same file can be re-selected
+        const input = document.getElementById('main-photo-input');
+        if (input) input.value = '';
     };
 
-    // ── REMOVE EXTRA PHOTO ──
-    const removeExtraPhoto = (index) => {
-        setExtraPhotos(prev    => prev.filter((_, i) => i !== index));
-        setExtraPreviews(prev  => prev.filter((_, i) => i !== index));
+    // ── FIELD-LEVEL ERROR CLEAR ──
+    const clearError = (field) => {
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
     };
 
     // ── SUBMIT ──
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setApiError('');
         setSuccess('');
 
-        if (!mainPhoto) {
-            setError('Please upload a main product photo.');
-            return;
-        }
-        if (!category) {
-            setError('Please select a category.');
+        // Client-side validation
+        const validationErrors = validate({ productName, description, cost, category, mainPhoto });
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            // Scroll to first error
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
@@ -135,51 +203,33 @@ const AddProduct = () => {
 
         try {
             const formData = new FormData();
-            formData.append('user_id',          user.user_id);
-            formData.append('product_name',     productName);
-            formData.append('product_description', description);
-            formData.append('product_cost',     cost);
-            formData.append('category',         category);
-            formData.append('instrument_type',  instrumentType);
-            formData.append('brand',            brand);
-            formData.append('genre',            genre);
-            formData.append('level',            level);
-            formData.append('condition_status', condition);
-            formData.append('format',           format);
-            formData.append('featured',         featured ? 1 : 0);
-            formData.append('product_photo',    mainPhoto);
-
-            extraPhotos.forEach(photo => {
-                formData.append('extra_images', photo);
-            });
+            formData.append('user_id',             user.user_id);
+            formData.append('product_name',        productName.trim());
+            formData.append('product_description', description.trim());
+            formData.append('product_cost',        cost);
+            formData.append('category',            category);
+            formData.append('instrument_type',     instrumentType);
+            formData.append('brand',               brand);
+            formData.append('genre',               genre);
+            formData.append('level',               level);
+            formData.append('condition_status',    condition);
+            formData.append('format',              format);
+            formData.append('featured',            featured ? 1 : 0);
+            formData.append('product_photo',       mainPhoto);
 
             await apiAddProduct(formData);
             setSuccess('Product added successfully!');
-
-            // Reset form
-            setProductName('');
-            setDescription('');
-            setCost('');
-            setCategory('');
-            setInstrumentType('');
-            setBrand('');
-            setGenre('');
-            setLevel('');
-            setCondition('');
-            setFormat('N/A');
-            setFeatured(false);
-            setMainPhoto(null);
-            setMainPreview('');
-            setExtraPhotos([]);
-            setExtraPreviews([]);
-
             setTimeout(() => navigate('/'), 2000);
 
         } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                'Failed to add product. Please try again.'
-            );
+            if (err.code === 'ECONNABORTED') {
+                setApiError('The request timed out. Please check your connection and try again.');
+            } else if (err.response?.data?.message) {
+                setApiError(err.response.data.message);
+            } else {
+                setApiError('Failed to add product. Please try again.');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } finally {
             setLoading(false);
         }
@@ -195,36 +245,68 @@ const AddProduct = () => {
                 {/* ── HEADER ── */}
                 <div className="addproduct-header">
                     <h1>Add a Product</h1>
-                    <p>Fill in the details below to list your product on Acoustiq</p>
+                    <p>List an instrument, plugin, or accessory for sale</p>
                 </div>
 
                 {/* ── ALERTS ── */}
-                {error   && <div className="alert alert-error">{error}</div>}
+                {apiError && (
+                    <div className="alert alert-error">
+                        <FiAlertCircle size={15} style={{ flexShrink: 0 }} />
+                        {apiError}
+                    </div>
+                )}
                 {success && <div className="alert alert-success">{success} Redirecting...</div>}
 
-                <form onSubmit={handleSubmit} className="addproduct-form">
+                {/* ── REQUIRED NOTE ── */}
+                <p className="required-note">Fields marked <span className="req-star">*</span> are required.</p>
+
+                <form onSubmit={handleSubmit} className="addproduct-form" noValidate>
                     <div className="addproduct-grid">
 
                         {/* ══ LEFT COLUMN ══ */}
                         <div className="addproduct-left">
 
-                            {/* Main photo upload */}
+                            {/* ── MAIN PHOTO ── */}
                             <div className="form-section">
-                                <h3 className="form-section-title">Main Photo</h3>
+                                <h3 className="form-section-title">
+                                    Main Photo <span className="req-star">*</span>
+                                </h3>
+
                                 <div
-                                    className={`photo-upload-box ${mainPreview ? 'has-preview' : ''}`}
-                                    onClick={() => document.getElementById('main-photo-input').click()}
+                                    className={`photo-upload-box ${mainPreview ? 'has-preview' : ''} ${errors.mainPhoto ? 'photo-error' : ''}`}
+                                    onClick={() => !compressing && document.getElementById('main-photo-input').click()}
+                                    style={{ cursor: compressing ? 'wait' : 'pointer' }}
                                 >
                                     {mainPreview ? (
-                                        <img src={mainPreview} alt="Main preview" className="photo-preview" />
+                                        <>
+                                            <img src={mainPreview} alt="Preview" className="photo-preview" />
+                                            {/* Clear button */}
+                                            <button
+                                                type="button"
+                                                className="photo-clear-btn"
+                                                onClick={handleClearPhoto}
+                                                title="Remove photo"
+                                            >
+                                                <FiX size={14} />
+                                            </button>
+                                        </>
                                     ) : (
                                         <div className="photo-upload-placeholder">
-                                            <FiUpload size={28} />
-                                            <p>Click to upload main photo</p>
-                                            <span>JPG, PNG, WEBP accepted</span>
+                                            {compressing
+                                                ? <><Loader small /><p>Compressing...</p></>
+                                                : <><FiUpload size={28} /><p>Click to upload photo</p><span>JPG, PNG, WEBP · auto-compressed</span></>
+                                            }
                                         </div>
                                     )}
                                 </div>
+
+                                {errors.mainPhoto && (
+                                    <p className="field-error">{errors.mainPhoto}</p>
+                                )}
+                                {mainPreview && !compressing && (
+                                    <p className="photo-hint">Click the image to replace it</p>
+                                )}
+
                                 <input
                                     type="file"
                                     id="main-photo-input"
@@ -234,41 +316,7 @@ const AddProduct = () => {
                                 />
                             </div>
 
-                            {/* Extra photos */}
-                            <div className="form-section">
-                                <h3 className="form-section-title">Additional Photos</h3>
-                                <div className="extra-photos-grid">
-                                    {extraPreviews.map((preview, i) => (
-                                        <div key={i} className="extra-photo-item">
-                                            <img src={preview} alt={`Extra ${i + 1}`} />
-                                            <button
-                                                type="button"
-                                                className="extra-photo-remove"
-                                                onClick={() => removeExtraPhoto(i)}
-                                            >
-                                                <FiX size={12} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                    <div
-                                        className="extra-photo-add"
-                                        onClick={() => document.getElementById('extra-photos-input').click()}
-                                    >
-                                        <FiPlus size={20} />
-                                        <span>Add photos</span>
-                                    </div>
-                                </div>
-                                <input
-                                    type="file"
-                                    id="extra-photos-input"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleExtraPhotos}
-                                    style={{ display: 'none' }}
-                                />
-                            </div>
-
-                            {/* Featured toggle */}
+                            {/* ── FEATURED TOGGLE ── */}
                             <div className="form-section">
                                 <div className="featured-toggle-row">
                                     <div>
@@ -276,7 +324,7 @@ const AddProduct = () => {
                                             Featured Product
                                         </h3>
                                         <p style={{ fontSize: '12px', color: 'var(--text-faint)' }}>
-                                            Show this product in the Editor's Pick section
+                                            Show in Editor's Pick section
                                         </p>
                                     </div>
                                     <label className="toggle-switch">
@@ -295,66 +343,78 @@ const AddProduct = () => {
                         {/* ══ RIGHT COLUMN ══ */}
                         <div className="addproduct-right">
 
-                            {/* Basic info */}
+                            {/* ── BASIC INFO ── */}
                             <div className="form-section">
                                 <h3 className="form-section-title">Basic Info</h3>
 
                                 <div className="form-group">
-                                    <label className="form-label">Product Name *</label>
+                                    <label className="form-label">
+                                        Product Name <span className="req-star">*</span>
+                                    </label>
                                     <input
                                         type="text"
-                                        className="form-control"
-                                        placeholder="e.g. Fender Stratocaster"
+                                        className={`form-control ${errors.productName ? 'input-error' : ''}`}
+                                        placeholder="e.g. Fender Player Stratocaster"
                                         value={productName}
-                                        onChange={(e) => setProductName(e.target.value)}
-                                        required
+                                        onChange={(e) => { setProductName(e.target.value); clearError('productName'); }}
+                                        maxLength={255}
                                     />
+                                    {errors.productName && <p className="field-error">{errors.productName}</p>}
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label">Description *</label>
+                                    <label className="form-label">
+                                        Description <span className="req-star">*</span>
+                                    </label>
                                     <textarea
-                                        className="form-control"
-                                        placeholder="Describe the product in detail — features, specs, condition notes..."
+                                        className={`form-control ${errors.description ? 'input-error' : ''}`}
+                                        placeholder="Describe the product — condition, features, what's included..."
                                         value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
+                                        onChange={(e) => { setDescription(e.target.value); clearError('description'); }}
                                         rows={5}
-                                        required
+                                        maxLength={2000}
                                     />
+                                    {errors.description && <p className="field-error">{errors.description}</p>}
+                                    <p className="char-count">{description.length} / 2000</p>
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label">Price (KES) *</label>
+                                    <label className="form-label">
+                                        Price (KES) <span className="req-star">*</span>
+                                    </label>
                                     <input
                                         type="number"
-                                        className="form-control"
+                                        className={`form-control ${errors.cost ? 'input-error' : ''}`}
                                         placeholder="e.g. 45000"
                                         value={cost}
-                                        onChange={(e) => setCost(e.target.value)}
+                                        onChange={(e) => { setCost(e.target.value); clearError('cost'); }}
                                         min="1"
-                                        required
+                                        max="9999999"
                                     />
+                                    {errors.cost && <p className="field-error">{errors.cost}</p>}
                                 </div>
                             </div>
 
-                            {/* Classification */}
+                            {/* ── CLASSIFICATION ── */}
                             <div className="form-section">
                                 <h3 className="form-section-title">Classification</h3>
 
                                 <div className="form-row-2">
                                     <div className="form-group">
-                                        <label className="form-label">Category *</label>
+                                        <label className="form-label">
+                                            Category <span className="req-star">*</span>
+                                        </label>
                                         <select
-                                            className="form-control"
+                                            className={`form-control ${errors.category ? 'input-error' : ''}`}
                                             value={category}
-                                            onChange={(e) => setCategory(e.target.value)}
-                                            required
+                                            onChange={(e) => { setCategory(e.target.value); clearError('category'); }}
                                         >
                                             <option value="">Select category</option>
                                             {CATEGORIES.map(c => (
                                                 <option key={c} value={c}>{c}</option>
                                             ))}
                                         </select>
+                                        {errors.category && <p className="field-error">{errors.category}</p>}
                                     </div>
 
                                     <div className="form-group">
@@ -449,12 +509,13 @@ const AddProduct = () => {
                         </div>
                     </div>
 
-                    {/* ── SUBMIT ── */}
+                    {/* ── SUBMIT ROW ── */}
                     <div className="addproduct-submit">
                         <button
                             type="button"
                             className="btn btn-ghost"
                             onClick={() => navigate('/')}
+                            disabled={loading}
                         >
                             Cancel
                         </button>
@@ -462,9 +523,14 @@ const AddProduct = () => {
                             type="submit"
                             className="btn btn-ice"
                             style={{ padding: '12px 32px' }}
-                            disabled={loading}
+                            disabled={loading || compressing}
                         >
-                            {loading ? <Loader small /> : <><FiPlus size={15} /> Add Product</>}
+                            {loading
+                                ? <><Loader small /> Uploading...</>
+                                : compressing
+                                    ? <><Loader small /> Compressing image...</>
+                                    : <><FiSave size={15} /> Add Product</>
+                            }
                         </button>
                     </div>
 

@@ -286,3 +286,81 @@
     color: var(--error);
     margin: 0;
 }
+
+/* Required field star */
+.req-star {
+    color: var(--error);
+    margin-left: 2px;
+}
+ 
+.required-note {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-bottom: 20px;
+}
+ 
+/* Field-level error messages */
+.field-error {
+    font-size: 12px;
+    color: var(--error);
+    margin: 4px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+ 
+/* Error state on inputs and selects */
+.input-error {
+    border-color: var(--error) !important;
+    box-shadow: 0 0 0 3px var(--error-dim) !important;
+}
+ 
+/* Error border on the photo upload box */
+.photo-upload-box.photo-error {
+    border-color: var(--error);
+    box-shadow: 0 0 0 3px var(--error-dim);
+}
+ 
+/* Clear photo button */
+.photo-clear-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--error-dim);
+    border: 1px solid rgba(224, 92, 92, 0.4);
+    color: var(--error);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background var(--transition);
+    z-index: 2;
+}
+ 
+.photo-clear-btn:hover {
+    background: rgba(224, 92, 92, 0.25);
+}
+ 
+/* Hint text below photo */
+.photo-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 6px;
+    text-align: center;
+}
+ 
+/* Character counter below description */
+.char-count {
+    font-size: 11px;
+    color: var(--text-faint);
+    text-align: right;
+    margin-top: 4px;
+}
+ 
+/* Make photo-upload-box position:relative so clear btn positions correctly */
+.photo-upload-box {
+    position: relative;
+}

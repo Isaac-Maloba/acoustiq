@@ -49,7 +49,7 @@ export const apiGetProduct = (productId) =>
     axios.get(`${BASE_URL}/api/product/${productId}`);
 
 export const apiAddProduct = (formData) =>
-    axios.post(`${BASE_URL}/api/add_product`, formData);
+    axios.post(`${BASE_URL}/api/add_product`, formData, { timeout: 30000 });
 
 export const apiEditProduct = (productId, formData) =>
     axios.put(`${BASE_URL}/api/edit_product/${productId}`, formData);
