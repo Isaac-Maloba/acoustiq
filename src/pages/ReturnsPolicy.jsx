@@ -11,7 +11,7 @@ Digital products including VST plugins and software licences are non-returnable 
     },
     {
         title: 'How to Initiate a Return',
-        body: `To start a return, contact us at hello@acoustiq.co.ke within the 7-day window. Include your order details, the item you wish to return, and the reason for the return. Our team will review your request and respond within 1–2 business days with instructions on how to send the item back.
+        body: `To start a return, contact us at mail@acoustiq.co.ke within the 7-day window. Include your order details, the item you wish to return, and the reason for the return. Our team will review your request and respond within 1–2 business days with instructions on how to send the item back.
 
 Please do not send items back without confirmation from us first — unrequested returns cannot be processed.`
     },
@@ -75,7 +75,7 @@ const ReturnsPolicy = () => (
         <div className="info-prose-wrapper">
             <div className="policy-note">
                 <strong>Last updated:</strong> January 2025 &nbsp;·&nbsp;
-                Questions? Email <a href="mailto:hello@acoustiq.co.ke">hello@acoustiq.co.ke</a>
+                Questions? Email <a href="mailto:mail@acoustiq.co.ke">mail@acoustiq.co.ke</a>
             </div>
 
             <div className="accordion">

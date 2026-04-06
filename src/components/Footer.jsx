@@ -28,7 +28,7 @@ const Footer = () => {
                         </div>
                         <div className="footer-contact-item">
                             <FiMail size={13} />
-                            <span>hello@acoustiq.co.ke</span>
+                            <span>mail@acoustiq.co.ke</span>
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@ const Footer = () => {
             <div className="footer-bottom">
                 <div className="footer-inner">
                     <p className="footer-copy">
-                        © {new Date().getFullYear()} Acoustiq. All rights reserved.
+                        © {new Date().getFullYear()} Acoustiq. All rights reserved. Developed by Isaac Maloba
                     </p>
                     <div className="footer-mpesa">
                         <span>Payments secured via</span>

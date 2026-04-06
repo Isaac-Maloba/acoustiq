@@ -19,14 +19,14 @@ const Contact = () => {
         {
             icon:  <FiMail size={18} />,
             label: 'Email',
-            value: 'hello@acoustiq.co.ke',
-            href:  'mailto:hello@acoustiq.co.ke'
+            value: 'mail@acoustiq.co.ke',
+            href:  'mailto:mail@acoustiq.co.ke'
         },
         {
             icon:  <FiPhone size={18} />,
             label: 'Phone / WhatsApp',
-            value: '+254 700 000 000',
-            href:  'tel:+254700000000'
+            value: '+254 119 043 365',
+            href:  'tel:+254119043365'
         },
         {
             icon:  <FiMapPin size={18} />,
@@ -96,7 +96,7 @@ const Contact = () => {
                                         name="name"
                                         value={form.name}
                                         onChange={handleChange}
-                                        placeholder="John Doe"
+                                        placeholder="Isaac Maloba"
                                         required
                                     />
                                 </div>
@@ -108,7 +108,7 @@ const Contact = () => {
                                         name="email"
                                         value={form.email}
                                         onChange={handleChange}
-                                        placeholder="john@example.com"
+                                        placeholder="maloba@example.com"
                                         required
                                     />
                                 </div>
